@@ -53,7 +53,7 @@ RMSE <- sqrt(mean((predicted_scores - matches$home_score)^2))
 
 # For classification
 library(caret)
-
+predicted_outcomes <- predict(multinom_model, newdata = matches, type = "class")
 # Convert both predicted outcomes and actual outcomes to factors with the same levels
 predicted_outcomes_factor <- factor(predicted_outcomes, levels = c("win", "lose", "draw"))
 matches$outcome_factor <- factor(matches$outcome, levels = c("win", "lose", "draw"))
