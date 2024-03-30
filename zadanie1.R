@@ -7,8 +7,12 @@ matches <- read_csv("results.csv")
 # Inspect the first few rows of the dataset
 head(matches)
 
+#Specifications of each column
+spec(matches)
+
 # Check for missing values
 summary(matches)
+
 
 
 matches$date <- as.Date(matches$date)
