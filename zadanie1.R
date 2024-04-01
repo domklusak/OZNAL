@@ -56,6 +56,9 @@ predicted_scores <- predict(lm_model, type = "response")
 MAE <- mean(abs(predicted_scores - matches$home_score))
 RMSE <- sqrt(mean((predicted_scores - matches$home_score)^2))
 
+print(MAE)
+print(RMSE)
+
 # For classification
 library(caret)
 predicted_outcomes <- predict(multinom_model, newdata = matches, type = "class")
