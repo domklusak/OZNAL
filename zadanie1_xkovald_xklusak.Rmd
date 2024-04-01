@@ -1,0 +1,193 @@
+---
+title: "Zadanie 1"
+subtitle: "Autori: Bc. Dávid Kováľ, Bc. Dominik Klušák" 
+output: html_document
+date: "2024-03-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Zadanie
+
+Implementujte a natrénujte viacnásobné regresné a klasifikačné modely v programovacom jazyku R a Tidyverse tak, aby boli úspešné (>> lepší ako náhoda) na vami zvolenom probléme.
+
+## Načítanie datasetu
+
+Dataset pozostáva z výsledkov medzinárodných futbalových zápasov konajúcich sa až od roku 1872 až do roku 2024.
+Rozsah zápasov je od zápasov FIFA až po priateľské futbalové zápasy.
+V datasete sa nenachádzajú ženské zápasy, zápasy z olympijských hier, U-23 (zápasy do 23 rokov)
+
+
+``` {r library, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+
+```
+
+```{r inc_dataset, message=FALSE}
+
+matches <- read_csv("results.csv")
+
+```
+
+## Základné operácie s datasetom
+
+Na začiatok vykonáme základné operácie s datasetom, aby sme sa pozreli, ako dataset vyzerá. V prvom kroku si pozrieme prvých 10 riadkov, v druhom kroku si špecifikujeme každý stĺpec, v treťom kroku sa pozrieme, či v datasete chýbajú nejaké hodnoty v stĺpcoch a vypočítame aj hodnotu, koľko ich je a na záver v štvrtom kroku si pozrieme sumár datasetu.
+
+1. Ako prvý krok si zobrazíme ukážku, ako vyzerá náš dataset - názvy stĺpcov a ukážka konkrétnych hodnôt/dát.
+
+``` {r zobrazenie_dat}
+head(matches)
+```
+
+Vo výstupnej tabuľke môžeme vidieť, že futbalové zápasy sú usporiadané od najstaršieho zápasu. Za dátumom nasleduje domáci tím a hosťovací tím, skóre domácich a hostí, typ turnaja, mesto a krajina, v ktorom sa odohralo futbalové stretnutie a logická hodnota neutral, ktorá označuje, či sa zápas odohral na neutrálnom mieste. V stĺpcoch home_score a away_score sa berú do úvahy aj góly strelené v predĺžení, avšak pokiaľ mal zápas aj penaltový rozstrel, tieto góly neboli započítané do výsledného skóre
+
+2. V druhom kroku sme si špecifikovali každý stĺpec nášho datasetu. Ako bolo vyššie spomenuté, v našom datasete máme í stĺpcov. Pomocou príkazu "spec" sme špeicifikovali, že máme 6 stĺpcov typu character, 2 double, 1 logický typ a + dátumový formát. 
+
+``` {r specifikacia}
+spec(matches)
+
+```
+
+3. V treťom kroku sme si zistili, či sa v našom datasete nachádzajú chýbajúce hodnoty v riadkoch. To sa dá zistiť pomocou príkazu is_na(). Následne vo výpise vidíme, že nám v datasete nechýbajú žiadne hodnoty a teda dataset je úplný.
+
+``` {r missing_values}
+missing_values <- colSums(is.na(matches))
+print(missing_values)
+
+```
+
+4. V poslednom kroku sme si vypísali súhrn základných štatistických informácii pre náš dataset, napríklad hodnoty medián, maximálne hodnoty, počet hodnôt, priemerné hodnoty. 
+``` {r sumar}
+summary(matches)
+
+```
+
+
+## Príprava datasetu na hypotézy
+
+Keďže v našich hypotézach, ktoré sú definované nižšie v projekte, budeme využívať štatistiky a pojmy ako výhra, prehra alebo remíza, tak sme si vytvorili nový stĺpec "OUTCOME", kde sa zapisuje, či domáce mužstvo si pripísalo výhru, prehru alebo remízu. 
+
+``` {r win_lose_draw}
+matches$date <- as.Date(matches$date)
+
+matches <- matches %>%
+  mutate(outcome = case_when(
+    home_score > away_score ~ "win",
+    home_score < away_score ~ "lose",
+    TRUE ~ "draw"
+  ))
+
+
+```
+
+Následne smne si vykreslili graf cez "ggplot" pre domáce mužstvá s počtom výhier, počtom prehier a počtom remíz. Podľa grafu vieme vyčítať, že tímy, ktoré hrajú na domácej pôde, majú tendenciu zápas vyhrať > prehrať > remizovať. 
+
+``` {r outcome_graph}
+ggplot(matches, aes(x = outcome)) + geom_bar(fill = "green") +
+  ggtitle("Match Outcome Distribution") + xlab("Outcome") + ylab("Count")
+```
+
+V ďalšom kroku sme pomocou grafou (opäť cez "ggplot" vykreslili distribúciu skóre domácich tímov, hosťujúcich tímov. Na začiatok sme si zhrnuli hodnoty home_score a away_score. 
+Na grafoch tvoria os X skóre (domáce aj hosťujúce tímy) a os Y frekvencia skóre.
+
+``` {r plots}
+
+summary(matches[ , c("home_score", "away_score")])
+
+
+# Distribution of home and away scores
+ggplot(matches, aes(x = home_score)) + geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  ggtitle("Distribution of Home Scores") + xlab("Home Score") + ylab("Frequency")
+
+ggplot(matches, aes(x = away_score)) + geom_histogram(binwidth = 1, fill = "red", color = "black") +
+  ggtitle("Distribution of Away Scores") + xlab("Away Score") + ylab("Frequency")
+
+
+
+```
+
+
+## Regresia - Hypotéza č.1:
+
+Hypotéza č.1: 
+Počet gólov skórovaných domácim tímom (home_score) možno predpovedať na základe rôznych faktorov, ako sú tím hostí, neutralita zápasu a typ turnaja.
+
+
+Na začiatok si natrénujeme lineárny regresný model cez príkaz "lm". Tento model budeme ukladať do premennej "lm_model" s nasledovnými vstupnými parametrami: home_score, away_score, neutral (či sa zápas odohráva na neutrálonom mieste) a tournament (typ turnaja).
+
+Pre sumarizáciu, snažíme sa predpovedať domáce skóre na základe skóre hostí, neutrality miesta a typu turnaja.
+
+
+``` {r lm_model regression}
+lm_model <- lm(home_score ~ away_score + neutral + factor(tournament), data = matches)
+
+```
+
+
+## Klasifikácia - Hypotéza č.2:
+
+Hypotéza č.2: 
+Výsledok zápasu pre domáci tím (výhra, prehra, remíza) možno klasifikovať na základe podobných faktorov.
+
+Na predpovedanie výsledku zápasu použijeme multinomiálny model. Budeme predpovedať výsledok zápasu na základe premenných: away_score, neutral a typ turnaja (tournament).
+
+
+``` {r multinom_model class}
+library(nnet)
+multinom_model <- multinom(outcome ~ away_score + neutral + factor(tournament), data = matches)
+
+```
+
+
+
+## Výsledky a výstupy
+
+Predpovedané hodnoty domáceho skóre cez jednoduchý regresný model sa uložia do premmej “predicted_scores” pomocou funkcie predict(). Argumentami funkcie je lineárny regresný model “lm_model” a typ response.
+Takisto sme si vypočítali strednú absolútnu chybu (MAE) a RMSE (odmocnina z priemeru štvorcov chýb).
+
+MAE nám vyjadruje absolútny rozdiel medzi predpoveďami odpovedí a skutočnými odpoveďami. RMSE je podobná metrika, avšak namiesto absolútnzch hodnôt používa druhú mocninu. 
+
+``` {r outcomes_regression}
+predicted_scores <- predict(lm_model, type = "response")
+MAE <- mean(abs(predicted_scores - matches$home_score))
+RMSE <- sqrt(mean((predicted_scores - matches$home_score)^2))
+
+print(MAE)
+print(RMSE)
+
+```
+
+asi pockam na konzultaciu a podla toho spravim aj tu printy a vysledky a porovnania :D
+
+Výsledky z klasifikácie pomocou multinomiálneho modelu sú ukladané do premennej "predicted_outcomes". Následne predikované výsledky konvertujeme na faktorovú premennú s triedami win, lose a draw (výhra, prehra, remíza) a následne konvertujeme skutočné výsledky z datasetu na faktorovú premennú s rovnakými triedami. 
+Na záver sme znázornili tabuľku, ktorá nám porovnáva predpovedané výsledky (premenná predicted_outcomes_factor) s reálnymi výsledkami (matches$outcome_factor) a takisto nám vypočíta počet správnych a nesprávnych klasifikácii. 
+
+``` {r classification}
+library(caret)
+
+# Convert both predicted outcomes and actual outcomes to factors with the same levels
+
+predicted_outcomes <- predict(multinom_model, newdata = matches, type = "class")
+
+predicted_outcomes_factor <- factor(predicted_outcomes, levels = c("win", "lose", "draw"))
+matches$outcome_factor <- factor(matches$outcome, levels = c("win", "lose", "draw"))
+
+#Confusion matrix
+confusion_matrix_result <- confusionMatrix(data = predicted_outcomes_factor, reference = matches$outcome_factor)
+
+#Results
+print(confusion_matrix_result)
+
+```
+
+Z výslednej tabuľky môžeme vyčítať 
+
+
+## Otazky
+
+Ked mame 65 percent, da sa ti ako uspech abo ni? ze ci sme potvrdili hypotezu abo nie 
+
+
+

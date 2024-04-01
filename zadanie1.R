@@ -10,6 +10,11 @@ head(matches)
 spec(matches)
 
 # Check for missing values
+
+missing_values <- colSums(is.na(matches))
+print(missing_values)
+
+# summary
 summary(matches)
 
 
