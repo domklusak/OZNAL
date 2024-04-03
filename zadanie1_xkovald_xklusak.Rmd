@@ -1,4 +1,4 @@
----
+u---
 title: "Zadanie 1"
 subtitle: "Autori: Bc. Dávid Kováľ, Bc. Dominik Klušák" 
 output: html_document
@@ -86,7 +86,7 @@ Následne smne si vykreslili graf cez "ggplot" pre domáce mužstvá s počtom v
 
 ``` {r outcome_graph}
 ggplot(matches, aes(x = outcome)) + geom_bar(fill = "green") +
-  ggtitle("Match Outcome Distribution") + xlab("Outcome") + ylab("Count")
+  ggtitle("Distribúcia výsledkov zápasov") + xlab("Výsledok") + ylab("Počet")
 ```
 
 V ďalšom kroku sme pomocou grafou (opäť cez "ggplot" vykreslili distribúciu skóre domácich tímov, hosťujúcich tímov. Na začiatok sme si zhrnuli hodnoty home_score a away_score. 
@@ -99,29 +99,30 @@ summary(matches[ , c("home_score", "away_score")])
 
 # Distribution of home and away scores
 ggplot(matches, aes(x = home_score)) + geom_histogram(binwidth = 1, fill = "blue", color = "black") +
-  ggtitle("Distribution of Home Scores") + xlab("Home Score") + ylab("Frequency")
+  ggtitle("Distribúcia domáceho skóre") + xlab("Domáce skóre") + ylab("Frekvencia")
 
 ggplot(matches, aes(x = away_score)) + geom_histogram(binwidth = 1, fill = "red", color = "black") +
-  ggtitle("Distribution of Away Scores") + xlab("Away Score") + ylab("Frequency")
+  ggtitle("Distribúcia hosťovského skóre") + xlab("Hosťovské skóre") + ylab("Frekvencia")
 
 
 
 ```
 
-Zobrazenie outlayerov sme robili pomocou boxplotov, ide o užitočné grafy pre vizualizáciu distribúcie skóre a identifikáciu outlierov, ktoré technicky môžu ovplyvniť analýzu regresie.
+Ako záverečný krok na prípravu pred hypotézami sme si zobrazili outliere pomocou boxplotov. Sú to veľmi užitočné grafy hlavne pre vizualizáciu distribúcie skóre a tým pádom identifikovanie outlierov, ktoré môžu v svojej podstate ovplyvniť analýzu regresie.
 
 ```{r boxplot-analysis-home}
-# Boxplot for home scores to identify outliers
+#Boxplot na outlieri pre home_score
 ggplot(matches, aes(y = home_score)) + geom_boxplot() + 
-   ggtitle("Boxplot of Home Scores") + ylab("Home Score")
+   ggtitle("Boxplot pre skóre domácich") + ylab("Skóre domácich")
 
-# Boxplot for away scores to identify outliers
+#Boxplot na outlieri pre away_score
 ggplot(matches, aes(y = away_score)) + geom_boxplot() + 
-  ggtitle("Boxplot of Away Scores") + ylab("Away Score")
+  ggtitle("Boxplot pre skóre hostí") + ylab("Skóre hostí")
 
 ```
 
-Aj keď tieto hodnoty môžu skutočne reprezentovať reálne výsledky zápasov, môže sa stať že skresia analýzu regresie tým, že zvýšia variabilitu alebo ovplyvnia odhadované parametre modelu. Keďže však ide o reálne výsledky zo zápasov a teda ide o prirodzenú variaciu tohto skóre rozdohli sme sa ich neodstraňovať.
+Aj keď tieto hodnoty môžu skutočne reprezentovať reálne výsledky zápasov, môže sa stať, že skresia analýzu regresie tým, že zvýšia variabilitu alebo ovplyvnia odhadované parametre modelu. 
+Keďže sa jedná o reálne výsledky z futbalových zápasov , tým pádom toto vnímame ako prirodzenú variáciu skóre, tým pádom sme sa rozhodli, že outlieri nebudeme z nášho datasetu odstraňovať.
 
 
 ## Regresia - Hypotéza č.1:
@@ -149,7 +150,7 @@ Výsledok zápasu pre domáci tím (výhra, prehra, remíza) možno klasifikova�
 Na predpovedanie výsledku zápasu použijeme multinomiálny model. Budeme predpovedať výsledok zápasu na základe premenných: away_score, neutral a typ turnaja (tournament).
 
 
-``` {r multinom_model class}
+``` {r multinom_model class, message=FALSE, warning = FALSE}
 library(nnet)
 multinom_model <- multinom(outcome ~ away_score + neutral + factor(tournament), data = matches)
 
@@ -179,20 +180,17 @@ asi pockam na konzultaciu a podla toho spravim aj tu printy a vysledky a porovna
 Výsledky z klasifikácie pomocou multinomiálneho modelu sú ukladané do premennej "predicted_outcomes". Následne predikované výsledky konvertujeme na faktorovú premennú s triedami win, lose a draw (výhra, prehra, remíza) a následne konvertujeme skutočné výsledky z datasetu na faktorovú premennú s rovnakými triedami. 
 Na záver sme znázornili tabuľku, ktorá nám porovnáva predpovedané výsledky (premenná predicted_outcomes_factor) s reálnymi výsledkami (matches$outcome_factor) a takisto nám vypočíta počet správnych a nesprávnych klasifikácii. 
 
-``` {r classification}
+``` {r classification, warning=FALSE, message=FALSE}
 library(caret)
-
-# Convert both predicted outcomes and actual outcomes to factors with the same levels
 
 predicted_outcomes <- predict(multinom_model, newdata = matches, type = "class")
 
 predicted_outcomes_factor <- factor(predicted_outcomes, levels = c("win", "lose", "draw"))
 matches$outcome_factor <- factor(matches$outcome, levels = c("win", "lose", "draw"))
 
-#Confusion matrix
 confusion_matrix_result <- confusionMatrix(data = predicted_outcomes_factor, reference = matches$outcome_factor)
 
-#Results
+#Vysledky
 print(confusion_matrix_result)
 
 ```
@@ -202,9 +200,9 @@ Z výslednej tabuľky môžeme vyčítať
 
 ## ROC Analýza pre klasifikačný model
 
-Po natrénovaní nášho multinomiálneho logistického regresného modelu sme vykonali ROC analýzu. ROC krivka a AUC (Area Under the Curve) hodnota nám pomáhajú zhodnotiť schopnosť modelu správne predpovedať výsledky ako 'výhra' proti ostatným možnostiam ('prehra' alebo 'remíza').
+Po natrénovaní nášho multinomiálneho logistického regresného modelu sme ešte na samotný záver pre ešte lepší dôkaz našich výsledkov vykonali ROC analýzu. ROC krivka a AUC (Area Under the Curve) hodnota nám pomáhajú zhodnotiť schopnosť modelu správne predpovedať výsledky ako 'výhra' proti ostatným možnostiam ('prehra' alebo 'remíza').
 
-```{r roc-analysis}
+```{r roc-analysis, message = FALSE, warning = FALSE}
 library(pROC)
 
 # Získanie predpovedaných pravdepodobností pre klasifikáciu 'win'
