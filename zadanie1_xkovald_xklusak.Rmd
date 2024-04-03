@@ -190,4 +190,31 @@ Z výslednej tabuľky môžeme vyčítať
 Ked mame 65 percent, da sa ti ako uspech abo ni? ze ci sme potvrdili hypotezu abo nie 
 
 
+## ROC Analýza pre klasifikačný model
 
+Po natrénovaní nášho multinomiálneho logistického regresného modelu sme vykonali ROC analýzu. ROC krivka a AUC (Area Under the Curve) hodnota nám pomáhajú zhodnotiť schopnosť modelu správne predpovedať výsledky ako 'výhra' proti ostatným možnostiam ('prehra' alebo 'remíza').
+
+```{r roc-analysis}
+library(pROC)
+
+# Získanie predpovedaných pravdepodobností pre klasifikáciu 'win'
+predicted_probs <- predict(multinom_model, newdata = matches, type = "prob")
+
+# Prevod skutočných výsledkov na binárnu formu pre klasifikáciu 'win'
+matches$binary_outcome <- as.numeric(matches$outcome == "win")
+predicted_probs_win <- predicted_probs[,"win"]
+
+# Vytvorenie ROC objektu pre klasifikáciu 'win'
+roc_curve <- roc(matches$binary_outcome, predicted_probs_win)
+
+# Výpočet AUC hodnoty pre ROC krivku
+auc_value <- auc(roc_curve)
+
+# Vykreslenie ROC krivky
+plot(roc_curve, main = paste("ROC Krivka pre klasifikáciu 'win', AUC =", auc_value))
+
+# Výpis AUC hodnoty
+print(auc_value)
+```
+
+Ako môžeme vidieť na ROC krivke, AUC hodnota je `r auc_value`, ktorá sa považuje za indikátor silnej schopnosti modelu rozlišovať medzi správne a nesprávne klasifikovanými príkladmi. Hodnota AUC nad 0.8 sa všeobecne považuje za výbornú, čo naznačuje, že náš model je účinný pri predpovedaní `výhier`. To potvrdzuje našu klasifikačnú hypotézu, že je možné predpovedať výsledok zápasu pre domáci tím na základe poskytnutých údajov.
