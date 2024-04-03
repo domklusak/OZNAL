@@ -200,7 +200,6 @@ print(confusion_matrix_result)
 Z výslednej tabuľky môžeme vyčítať 
 
 
-
 ## ROC Analýza pre klasifikačný model
 
 Po natrénovaní nášho multinomiálneho logistického regresného modelu sme vykonali ROC analýzu. ROC krivka a AUC (Area Under the Curve) hodnota nám pomáhajú zhodnotiť schopnosť modelu správne predpovedať výsledky ako 'výhra' proti ostatným možnostiam ('prehra' alebo 'remíza').
