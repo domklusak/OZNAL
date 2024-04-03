@@ -122,7 +122,8 @@ ggplot(matches, aes(y = away_score)) + geom_boxplot() +
 ```
 
 Aj keď tieto hodnoty môžu skutočne reprezentovať reálne výsledky zápasov, môže sa stať, že skresia analýzu regresie tým, že zvýšia variabilitu alebo ovplyvnia odhadované parametre modelu. 
-Keďže sa jedná o reálne výsledky z futbalových zápasov , tým pádom toto vnímame ako prirodzenú variáciu skóre, tým pádom sme sa rozhodli, že outlieri nebudeme z nášho datasetu odstraňovať.
+Keďže sa jedná o reálne výsledky z futbalových zápasov , tým pádom toto vnímame ako prirodzenú variáciu skóre - napríklad veľmi dobrým výkonom futbalového mužstva alebo jednoznačným favoritom zápasu.
+Na tomto základe sme sa rozhodli, že outlieri nebudeme v našom datasete vymazávať.
 
 
 ## Regresia - Hypotéza č.1:
