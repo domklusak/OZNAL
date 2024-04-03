@@ -166,7 +166,9 @@ Takisto sme si vypočítali strednú absolútnu chybu (MAE) a RMSE (odmocnina z 
 MAE nám vyjadruje absolútny rozdiel medzi predpoveďami odpovedí a skutočnými odpoveďami. RMSE je podobná metrika, avšak namiesto absolútnzch hodnôt používa druhú mocninu. 
 
 ``` {r outcomes_regression}
-predicted_scores <- predict(lm_model, type = "response")
+predicted_scores <- predict(lm_model, type = "response", newdata = matches)
+predicted_scores <- round(predicted_scores)
+
 MAE <- mean(abs(predicted_scores - matches$home_score))
 RMSE <- sqrt(mean((predicted_scores - matches$home_score)^2))
 
@@ -175,7 +177,10 @@ print(RMSE)
 
 ```
 
-asi pockam na konzultaciu a podla toho spravim aj tu printy a vysledky a porovnania :D
+Pokiaľ je vo všeobecnosti hodnota MAE a RMSE bližšia k 0, tým lepší výsledok sme dosiahli. Avšak treba vziať aj do úvahy počet dát, s ktorými sa dáta porovnávajú a v tomto prípade náš dataset má okolo 46000 dát, ktoré natrénoval a s ktorými sa hodnoty porovnávajú, tak v našom prípade je hodnota MAE aj RMSE výborná. 
+
+Vzhľadom na to môžeme potvrdiť hypotézu č. 1
+
 
 Výsledky z klasifikácie pomocou multinomiálneho modelu sú ukladané do premennej "predicted_outcomes". Následne predikované výsledky konvertujeme na faktorovú premennú s triedami win, lose a draw (výhra, prehra, remíza) a následne konvertujeme skutočné výsledky z datasetu na faktorovú premennú s rovnakými triedami. 
 Na záver sme znázornili tabuľku, ktorá nám porovnáva predpovedané výsledky (premenná predicted_outcomes_factor) s reálnymi výsledkami (matches$outcome_factor) a takisto nám vypočíta počet správnych a nesprávnych klasifikácii. 
@@ -195,8 +200,12 @@ print(confusion_matrix_result)
 
 ```
 
-Z výslednej tabuľky môžeme vyčítať 
+Z výslednej tabuľky môžeme vyčítať a vyvodiť nasledovné závery:
+- Celková presnosť klasifikovaných prípadov je 65%
+- Interval spoľahlivosti pre presnosť (CI) je 95%
+- V kategórii Statistics by Class môžeme sledovať percentá pozitívnych a negatívnych prípadov, ktoré boli správne klasifikované ako pozitívne/negatívne
 
+Záverom môžeme teda potvrdiť aj hypotézu č.2
 
 ## ROC Analýza pre klasifikačný model
 
