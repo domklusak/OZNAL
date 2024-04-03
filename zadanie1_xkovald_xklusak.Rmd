@@ -108,6 +108,21 @@ ggplot(matches, aes(x = away_score)) + geom_histogram(binwidth = 1, fill = "red"
 
 ```
 
+Zobrazenie outlayerov sme robili pomocou boxplotov, ide o užitočné grafy pre vizualizáciu distribúcie skóre a identifikáciu outlierov, ktoré technicky môžu ovplyvniť analýzu regresie.
+
+```{r boxplot-analysis-home}
+# Boxplot for home scores to identify outliers
+ggplot(matches, aes(y = home_score)) + geom_boxplot() + 
+   ggtitle("Boxplot of Home Scores") + ylab("Home Score")
+
+# Boxplot for away scores to identify outliers
+ggplot(matches, aes(y = away_score)) + geom_boxplot() + 
+  ggtitle("Boxplot of Away Scores") + ylab("Away Score")
+
+```
+
+Aj keď tieto hodnoty môžu skutočne reprezentovať reálne výsledky zápasov, môže sa stať že skresia analýzu regresie tým, že zvýšia variabilitu alebo ovplyvnia odhadované parametre modelu. Keďže však ide o reálne výsledky zo zápasov a teda ide o prirodzenú variaciu tohto skóre rozdohli sme sa ich neodstraňovať.
+
 
 ## Regresia - Hypotéza č.1:
 
@@ -217,4 +232,4 @@ plot(roc_curve, main = paste("ROC Krivka pre klasifikáciu 'win', AUC =", auc_va
 print(auc_value)
 ```
 
-Ako môžeme vidieť na ROC krivke, AUC hodnota je `r auc_value`, ktorá sa považuje za indikátor silnej schopnosti modelu rozlišovať medzi správne a nesprávne klasifikovanými príkladmi. Hodnota AUC nad 0.8 sa všeobecne považuje za výbornú, čo naznačuje, že náš model je účinný pri predpovedaní `výhier`. To potvrdzuje našu klasifikačnú hypotézu, že je možné predpovedať výsledok zápasu pre domáci tím na základe poskytnutých údajov.
+Ako môžeme vidieť na ROC krivke, AUC hodnota (v našom prípade `auc_value`), ktorá sa považuje za indikátor silnej schopnosti modelu rozlišovať medzi správne a nesprávne klasifikovanými príkladmi. Hodnota AUC nad 0.8 sa všeobecne považuje za výbornú, čo naznačuje, že náš model je účinný pri predpovedaní `výhier`. To potvrdzuje našu klasifikačnú hypotézu, že je možné predpovedať výsledok zápasu pre domáci tím na základe poskytnutých údajov.
