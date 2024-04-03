@@ -200,10 +200,6 @@ print(confusion_matrix_result)
 Z výslednej tabuľky môžeme vyčítať 
 
 
-## Otazky
-
-Ked mame 65 percent, da sa ti ako uspech abo ni? ze ci sme potvrdili hypotezu abo nie 
-
 
 ## ROC Analýza pre klasifikačný model
 
