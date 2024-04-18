@@ -6,7 +6,7 @@ library(rpart) #decision tree
 library(rpart.plot)
 
 # Load the dataset
-matches <- read_csv("C:/Users/Lenovo/Desktop/FIIT/ING/IB 2. Semester/Objavovanie Znalostí/projekt1/OZNAL/OZNAL/results.csv")
+matches <- read_csv("results.csv")
 
 # Inspect the first few rows of the dataset
 head(matches)
@@ -189,13 +189,14 @@ lasso_model <- glmnet(
   lambda = best_lambda
 )
 
-# Nastavenie modelu SVM
+# Nastavenie modelu SVM s povolením pravdepodobností
 set.seed(123)
 svm_model <- svm(
   outcome ~ home_score + away_score + neutral,
   data = training_set,
   type = "C-classification",
-  kernel = "radial"
+  kernel = "radial",
+  probability = TRUE  # Povoliť výpočet pravdepodobností
 )
 
 # Predikcia a vyhodnotenie modelu Lasso
@@ -208,21 +209,47 @@ stopifnot(length(lasso_pred_factor) == length(test_set$outcome))
 # Vytvorenie konfúznej matice pre model Lasso
 lasso_conf_mat <- confusionMatrix(data = lasso_pred_factor, reference = test_set$outcome)
 
-# Predikcia a vyhodnotenie modelu SVM
-svm_pred <- predict(svm_model, test_set)
-svm_conf_mat <- confusionMatrix(data = svm_pred, reference = test_set$outcome)
+# Predikcia a získanie pravdepodobností
+svm_prob <- predict(svm_model, test_set, probability = TRUE)
+svm_probabilities <- attr(svm_prob, "probabilities")
 
 # Výstup konfúznych matíc
 print(lasso_conf_mat)
 print(svm_conf_mat)
 
-# ROC analýza a AUC pre klasifikačný model (potrebný balíček pROC)
-library(pROC)
-svm_prob <- attr(predict(svm_model, test_set, probability = TRUE), "probabilities")
-svm_roc <- roc(response = test_set$outcome, predictor = svm_prob[, "win"])
+# Skontrolujeme štruktúru svm_probabilities
+print(colnames(svm_probabilities))
+print(head(svm_probabilities))
+
+# Kontrola obsahu hodnot
+summary(svm_probabilities)
+
+# ROC analýza a AUC pre klasifikačný model
+svm_roc <- roc(response = test_set$outcome, predictor = svm_probabilities[, "win"])
 svm_auc <- auc(svm_roc)
 plot(svm_roc)
 print(svm_auc)
+
+
+# Výpočet ROC krivky pre triedu 'win'
+roc_win <- roc(response = test_set$outcome, predictor = svm_probabilities[, "win"],
+               levels = c("lose", "draw"), direction = "<")
+
+# Vykreslenie ROC krivky pre 'win'
+plot(roc_win, main = "ROC Curve for 'Win'")
+print(auc(roc_win))
+
+# Výpočet a zobrazenie ROC krivky pre triedu 'lose'
+roc_lose <- roc(response = test_set$outcome, predictor = svm_probabilities[, "lose"],
+                levels = c("win", "draw"), direction = "<")
+plot(roc_lose, main = "ROC Curve for 'Lose'")
+print(auc(roc_lose))
+
+# Výpočet a zobrazenie ROC krivky pre triedu 'draw'
+roc_draw <- roc(response = test_set$outcome, predictor = svm_probabilities[, "draw"],
+                levels = c("win", "lose"), direction = "<")
+plot(roc_draw, main = "ROC Curve for 'Draw'")
+print(auc(roc_draw))
 
 
 
