@@ -246,30 +246,29 @@ Hypotéza č.2: Výsledok zápasu pre domáci tím (výhra, prehra, remíza) mo�
 
 --------------------------------------------------------------------
 
-##Tu zacina zadanie 2
+# **Zadanie 2**
 
-Spravili sme si maticu korelácie, aby sme zistili, ako navzájom korelujú hodnoty s hodnotou home_score ??? = prezistiť
-Na korelačnú maticu využívame stĺpce home_score, away_score a neutral. Na výpočet korelačnej matice s týmito pamarametrami používame funkciu cor spolu s parametrom complete.obs, ktorý nám zohľadní iba riadky, ktoré nemajú chýbajúce hodnot v daných analyzovaných premenných.
+Spravili sme si maticu korelácie, aby sme zistili, ako navzájom korelujú hodnoty s hodnotou home_score
+Na korelačnú maticu využívame stĺpce home_score, away_score a neutral (keďže ich máme ako numerické hodnoty). Na výpočet korelačnej matice s týmito pamarametrami používame funkciu `cor` spolu s parametrom `complete.obs`, ktorý nám zohľadní iba riadky, ktoré nemajú chýbajúce hodnot v daných analyzovaných premenných.
 
 
-``` {r zadanie 2}
-# Compute a correlation matrix
+``` {r korelacna_matica}
 correlation_matrix <- matches %>% 
-  select(home_score, away_score, neutral) %>% # Adjust based on the numeric variables you have
+  select(home_score, away_score, neutral) %>%
   cor(use = "complete.obs")
 
-# Print the correlation matrix
+# Výpis korelačnej matice
 print(correlation_matrix)
 
-# Visualize the correlation matrix
+# Vyzualizácia korelačnej matice
 corr_plot <- ggplot(as.data.frame(as.table(correlation_matrix)), aes(Var1, Var2, fill = Freq)) +
   geom_tile() +
   scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0, limit = c(-1,1), space = "Lab", name="Pearson\nCorrelation") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1)) +
-  labs(title = "Correlation Matrix of Numeric Variables")
+  labs(title = "Matica korelácie numerických hodnôt")
 
-# Visualize outcomes by tournament type
+# Vizualizácia výsledkov na základe typu turnaja
 ggplot(matches, aes(x = tournament, fill = outcome)) +
   geom_bar(position = "fill") +
   labs(y = "Proportion of Outcomes", x = "Tournament Type") +
@@ -277,21 +276,27 @@ ggplot(matches, aes(x = tournament, fill = outcome)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("Proportion of Match Outcomes by Tournament Type")
 
-# Display the plots
+# Zobrazenie grafov
 print(corr_plot)
 
 ```
 
-funglica a druha cast:
 
-``` {r druha cast}
+Ako výsledok korelačnej matice môžeme vidieť rôzne korelácie medzi premennými home_score, away_score a neutral, vo všeoecbnosti ale väčšina korelácií je blízko 0, prípadne majú malú absolútnu hodnotu, čo nám naznačuje slabé až žiadne lineárne vzťahy medzi premennými. Napríklad konkrétne hodnota `home_score` vs `away_score` -0.143 nám zančí slabú negatívnu koreláciu. To znamená, že ak jedna premenná rastie, druhá sa mierne znižuje, avšak nie veľmi, pretože korelácia je slabá.
+
+## Rozdelenie dát na tréningovú a testovaciu sadu
+
+Dáta sme si pred implementáciou nových regresných a klasifikačných metód rozdelili na testovacie a trénovacie a takisto sme zahrnuli aj uistenie, že výsledná premenná `outcome` je faktor.
+
+
+``` {r rozdelenie_dat_test_train, warning=FALSE, message=FALSE}
 library(glmnet)
 library(e1071) # Pre SVM
 library(rpart) #decision tree
 library(rpart.plot)
 
 # Rozdelenie dát na tréningovú a testovaciu sadu
-set.seed(123) # Pre reprodukovateľnosť
+set.seed(123) # Pre reprodukovateľnosť dát
 training_index <- createDataPartition(matches$outcome, p = 0.8, list = FALSE)
 training_set <- matches[training_index, ]
 test_set <- matches[-training_index, ]
@@ -301,12 +306,24 @@ test_set <- matches[-training_index, ]
 training_set$outcome <- factor(training_set$outcome)
 test_set$outcome <- factor(test_set$outcome)
 
-#Decision tree model 
+```
+
+V tomto zadaní sme sa rozhodli implementovať 1 viacnásobný klasifikačný model: Decision Tree a 2 viacnásobné regresné modely: Lasso a SVM.
+
+## Rozhodovací strom
+
+Pre implementáciu rozhodovacieho stromu sme sa rozhodli kvôli výbornému grafovému spracovaniu, kde budeme môcť sledovať a pochopiť rozhodovacie procesy modelu, kvôli odolnosti voči outlierom, keďže sme sa ich v zadaní 1 rozhodli neodstraňovať. Natrénovanie modelu vykonávame cez príkaz `rpart` , kde výstupnou premennou je `outcome`. Metóda class nám hovorí, že sa jedná o klasifikáciu. 
+Predikcie na testovacej sade vykonávame cez `predict`. 
+Následne si výpíšeme tabuľku, kde budú porovnané predpovedané hodnoty s reálnymi hodnotami v testovacej sade a vypočítame si presnosť modelu. 
+
+``` {r decision_tree, warning=FALSE, message=FALSE}
+
+# Rozhodovací strom 
 tree <- rpart(outcome ~ home_score + away_score + neutral, data = training_set, method = 'class')
 
 predictions <- predict(tree, test_set, type = 'class')
 
-# conf matrix
+# matica
 confusionMatrix <- table(predictions, test_set$outcome)
 print(confusionMatrix)
 
@@ -316,7 +333,21 @@ print(accuracy)
 
 #Graf
 rpart.plot(tree)
+```
 
+
+V tabuľke môžeme vidieť, že náš model správne klasifikoval väčšinu príkladov pre všetky triedy = win, lose, draw. 
+
+Napríklad vidíme, že počet príkladov, ktoré boli správne klasifikované ako víťazstvá, je až 4538 a počet príkladov, ktoré boli nesprávne klasifikované ako remízy alebo prehry, ale v skutočnosti boli víťazstvá, je iba 88. 
+
+Vidíme, že výsledná presnosť rozhodovacieho stromu je až na úrovni 98-99%, čo je vynikajúci výsledok.
+
+## Lasso model
+
+Ako viacnásobný regresný model sme si zvolili Lasso, kde sme využili techniku Cross-validácie, ktorá je používaná na odhad výkonnosti modelu alebo na výber optimálnej hodnoty (Lambda). 
+
+
+``` {r lasso, warning=FALSE, message=FALSE}
 
 # Cross-validácia pre Lasso model
 set.seed(123)
@@ -327,13 +358,11 @@ cv_lasso <- cv.glmnet(
   family = "multinomial"
 )
 
-
 # Najlepšie lambda pre Lasso model z cross-validácie
 best_lambda <- cv_lasso$lambda.min
 
 #vizualizacia vyberu lambdy
 plot(cv_lasso)
-
 
 # Nastavenie modelu Lasso s vybranou hodnotou lambda
 lasso_model <- glmnet(
@@ -342,16 +371,6 @@ lasso_model <- glmnet(
   alpha = 1, # Alpha = 1 pre lasso
   family = "multinomial",
   lambda = best_lambda
-)
-
-
-# Nastavenie modelu SVM
-set.seed(123)
-svm_model <- svm(
-  outcome ~ home_score + away_score + neutral,
-  data = training_set,
-  type = "C-classification",
-  kernel = "radial"
 )
 
 # Predikcia a vyhodnotenie modelu Lasso
@@ -364,12 +383,89 @@ stopifnot(length(lasso_pred_factor) == length(test_set$outcome))
 # Vytvorenie konfúznej matice pre model Lasso
 lasso_conf_mat <- confusionMatrix(data = lasso_pred_factor, reference = test_set$outcome)
 
-# Predikcia a vyhodnotenie modelu SVM
+#Výstup konfuznej matice pre Lasso model
+print(lasso_conf_mat)
+
+
+```
+
+Vo vyššie vizualizovanom grafu môžeme vidieť zobrazené výsledky krížovej validácie. Na osi X vidíme hodnoty lambda a na osi Y odchýlky. 
+Výsledok grafu/trend krivky: Vo všeobecnosti krivka klesá so zvyšujúcou sa lambda hodnotou, čo nám značí, že sa aj znižuje chyba. 
+
+Vo finálnych výsledkoch konfúznej matice pre Lasso model vidíme, že neexistuje nesprávna klasifikácia, čiže Lasso model nám klasifikoval každý príklad správne. Toto mohlo nastať aj kvôli tomu, že náš dataset má jasné a jednoduco rozoznateľné vzory.
+Interval spoľahlivosti máme na 95% , čo znamená, že s 95% istotou je skutočná hodnota (presnosť modelu medzi 0,9996 a 1)
+
+## SVM Model
+
+V zadaní sme sa rozhodli nastaviť model SVM s typom C-klasifikácia, kernel typu radial a probability=TRUE, čo nášmu modelu umožní vypočítať pravdepodobnosti príslušnosti k jednotlivým triedam.
+
+
+``` {r svm, warning=FALSE, message=FALSE}
+
+# Nastavenie modelu SVM
+set.seed(123)
+svm_model <- svm(
+  outcome ~ home_score + away_score + neutral,
+  data = training_set,
+  type = "C-classification",
+  kernel = "radial",
+  probability=TRUE
+)
+
+# Predikcia a získanie pravdepodobností
+svm_prob <- predict(svm_model, test_set, probability = TRUE)
+svm_probabilities <- attr(svm_prob, "probabilities")
+
+# Porovnanie predikcií so skutočnými hodnotami
 svm_pred <- predict(svm_model, test_set)
 svm_conf_mat <- confusionMatrix(data = svm_pred, reference = test_set$outcome)
 
+# Skontrolujeme štruktúru svm_probabilities
+print(colnames(svm_probabilities))
+print(head(svm_probabilities))
+
+# Kontrola obsahu hodnot
+summary(svm_probabilities)
+
+
 # Výstup konfúznych matíc
-print(lasso_conf_mat)
 print(svm_conf_mat)
+
+
+```
+
+Štruktúra `svm_probabilities` obsahuje výpisané pravdepodobnosti príslušnosti k jednotlivým triedam pre každý záznam v našej testovacej sade.
+Výsledky SVM modelu dosiahol najvyššiu presnosť (Accuracy = 1), čo znamená, že opäť klasifikovať všetky záznamy v testovacej sade správne. 
+
+## ROC a AUC Analýza
+
+``` {r vysledky, warning=FALSE, message=FALSE}
+
+# ROC analýza a AUC pre klasifikačný model
+svm_roc <- roc(response = test_set$outcome, predictor = svm_probabilities[, "win"])
+svm_auc <- auc(svm_roc)
+plot(svm_roc)
+print(svm_auc)
+
+
+# Výpočet ROC krivky pre triedu 'win'
+roc_win <- roc(response = test_set$outcome, predictor = svm_probabilities[, "win"],
+               levels = c("lose", "draw"), direction = "<")
+
+# Vykreslenie ROC krivky pre 'win'
+plot(roc_win, main = "ROC Curve for 'Win'")
+print(auc(roc_win))
+
+# Výpočet a zobrazenie ROC krivky pre triedu 'lose'
+roc_lose <- roc(response = test_set$outcome, predictor = svm_probabilities[, "lose"],
+                levels = c("win", "draw"), direction = "<")
+plot(roc_lose, main = "ROC Curve for 'Lose'")
+print(auc(roc_lose))
+
+# Výpočet a zobrazenie ROC krivky pre triedu 'draw'
+roc_draw <- roc(response = test_set$outcome, predictor = svm_probabilities[, "draw"],
+                levels = c("win", "lose"), direction = "<")
+plot(roc_draw, main = "ROC Curve for 'Draw'")
+print(auc(roc_draw))
 
 ```
