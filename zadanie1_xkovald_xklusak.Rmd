@@ -441,13 +441,6 @@ Výsledky SVM modelu dosiahol najvyššiu presnosť (Accuracy = 1), čo znamená
 
 ``` {r vysledky, warning=FALSE, message=FALSE}
 
-# ROC analýza a AUC pre klasifikačný model
-svm_roc <- roc(response = test_set$outcome, predictor = svm_probabilities[, "win"])
-svm_auc <- auc(svm_roc)
-plot(svm_roc)
-print(svm_auc)
-
-
 # Výpočet ROC krivky pre triedu 'win'
 roc_win <- roc(response = test_set$outcome, predictor = svm_probabilities[, "win"],
                levels = c("lose", "draw"), direction = "<")
@@ -469,3 +462,11 @@ plot(roc_draw, main = "ROC Curve for 'Draw'")
 print(auc(roc_draw))
 
 ```
+- **Trieda 'Win'**: Model dosahuje AUC hodnotu blízku 1, čo ukazuje jeho silnú schopnosť správne predpovedať výsledky, kde domáci tím vyhráva.
+- **Trieda 'Lose'**: S AUC hodnotou 0.9901 model efektívne identifikuje zápasy, kde domáci tím prehráva.
+- **Trieda 'Draw'**: AUC hodnota 0.7152 poukazuje na to, že predikcia remíz je menej presná ako v ostatných prípadoch.
+
+Výsledky ROC analýzy nám poskytujú dôležité informácie o tom, ako model spracováva a rozlišuje medzi rôznymi výsledkami zápasov.
+
+**Zhodnotenie**
+Napriek použitiu techník modelovania ako sú Lasso regresia, SVM, decision trees a ROC analýza, výsledky s presnosťou a AUC blízkymi 1 naznačujú možné skreslené výsledky. Tieto vysoké hodnoty môžu signalizovať pretrénovanie modelov, ktoré sú príliš dobre prispôsobené na tréningové dáta a môžu mať problémy s generalizáciou na nové dáta. Ďalším potenciálnym problémom môže byť rozdelenie dát, ak testovacia sada nie je dostatočne reprezentatívna alebo je príliš podobná tréningovej sade. Tieto faktory môžu viesť k nadhodnoteným výsledkom, ktoré nemusia odrážať výkon modelu v praxi.
